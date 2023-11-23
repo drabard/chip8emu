@@ -5,13 +5,12 @@ use rand::{Rng, rngs::ThreadRng};
 
 extern crate sdl2;
 
-use sdl2::audio::{AudioCallback, AudioSpecDesired, AudioStatus};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
 pub mod display;
-
+pub mod sound;
 
 #[derive(Debug)]
 struct State {
@@ -377,12 +376,10 @@ fn execute_instruction(instruction: Instruction, state: &mut State) {
             state.memory_register = (state.registers[register] * 5) as u16;
         }
         Instruction::LDB(register) => {
-            // TODO
             let value: f32 = state.registers[register] as f32;
             let hundreds = (value / 100.0).floor();
             let tens = ((value - hundreds * 100.0) / 10.0).floor();
             let ones = (value - hundreds * 100.0 - tens * 10.0).floor();
-            println!("BCD of {}: {}, {}, {}", value, hundreds, tens, ones);
             state.memory[state.memory_register as usize] = hundreds as u8;
             state.memory[state.memory_register as usize + 1] = tens as u8;
             state.memory[state.memory_register as usize + 2] = ones as u8;
@@ -437,27 +434,6 @@ Delay timer: {}
     // }
 }
 
-struct SquareWave {
-    phase_inc: f32,
-    phase: f32,
-    volume: f32
-}
-
-impl AudioCallback for SquareWave {
-    type Channel = f32;
-
-    fn callback(&mut self, out: &mut [f32]) {
-        for x in out.iter_mut() {
-            *x = if self.phase <= 0.5 {
-                self.volume
-            } else {
-                -self.volume
-            };
-            self.phase = (self.phase + self.phase_inc) % 1.0;
-        }
-    }
-}
-
 fn main() {
     let mut state = State::new();
 
@@ -476,21 +452,7 @@ fn main() {
 
     let sdl_context = sdl2::init().unwrap();
     let mut display = display::Display::new(&sdl_context).unwrap();
-
-    // Setup audio.
-    let audio_subsystem = sdl_context.audio().unwrap();
-    let desired_spec = AudioSpecDesired {
-        freq: Some(44100),
-        channels: Some(1),
-        samples: None
-    };
-    let audio_device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
-        SquareWave {
-            phase_inc: 440.0 / spec.freq as f32,
-            phase: 0.0,
-            volume: 0.25
-        }
-    }).unwrap();
+    let mut sound = sound::Sound::new(&sdl_context).unwrap();
 
     {
         // load ROM.
@@ -628,11 +590,9 @@ fn main() {
             }
 
             if state.sound_timer == 0 {
-                audio_device.pause();
+                sound.stop();
             } else {
-                if audio_device.status() != AudioStatus::Playing {
-                    audio_device.resume();
-                }
+                sound.play();
                 state.sound_timer -= 1;
             }
 
@@ -641,7 +601,6 @@ fn main() {
                 | (state.memory[opcode_address + 1] as u16);
             let instruction = decode_opcode(opcode);
             if true {
-                //            if step_mode_active {
                 println!(
                     "{}: 0x{:04X} => {:?}",
                     state.program_counter, opcode, instruction
