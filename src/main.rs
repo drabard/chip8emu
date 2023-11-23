@@ -8,9 +8,10 @@ extern crate sdl2;
 use sdl2::audio::{AudioCallback, AudioSpecDesired, AudioStatus};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use std::time::Duration;
+
+pub mod display;
+
 
 #[derive(Debug)]
 struct State {
@@ -67,30 +68,8 @@ impl State {
     }
 }
 
-struct KeyState {
-    up: u8,
-    pressed: u8,
-    down: u8,
-}
-
 const KEY_PRESSED: u8 = 0b10;
-const KEY_DOWN: u8 = 0b11;
 const KEY_UP: u8 = 0b01;
-
-#[derive(Clone, Copy, Debug)]
-struct Pixel {
-    rect: Rect,
-    colored: bool,
-}
-
-impl Pixel {
-    fn new() -> Pixel {
-        Pixel {
-            rect: Rect::new(0, 0, 10, 10),
-            colored: false,
-        }
-    }
-}
 
 type Address = u16;
 type Register = usize;
@@ -496,8 +475,8 @@ fn main() {
     }
 
     let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-    
+    let mut display = display::Display::new(&sdl_context).unwrap();
+
     // Setup audio.
     let audio_subsystem = sdl_context.audio().unwrap();
     let desired_spec = AudioSpecDesired {
@@ -512,12 +491,6 @@ fn main() {
             volume: 0.25
         }
     }).unwrap();
-
-    let window = video_subsystem
-        .window("CHIP-8 emulator", 640, 320)
-        .position_centered()
-        .build()
-        .unwrap();
 
     {
         // load ROM.
@@ -542,51 +515,14 @@ fn main() {
         state.program_counter = 0x200;
     }
 
-    let mut pixels = [[Pixel::new(); 32]; 64];
-
-    // Initialize pixel positions.
-    for i in 0..pixels.len() {
-        for j in 0..pixels[i].len() {
-            let pixel = &mut pixels[i][j];
-            pixel.rect.set_x((i * 10) as i32);
-            pixel.rect.set_y((j * 10) as i32);
-        }
-    }
-
-    let mut canvas = window.into_canvas().build().unwrap();
-
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut step_mode_active = step_mode;
     let mut next_instruction;
     'running: loop {
         next_instruction = !step_mode_active;
 
-        canvas.set_draw_color(Color::RGB(0x22, 0x22, 0x22));
-        canvas.clear();
-
-        // Translate state.framebuffer to pixels.
-        for col_byte in 0..8 {
-            for row in 0..32 {
-                let fb_byte = state.framebuffer[col_byte + row * 8];
-                for pixel_x in 0..8 {
-                    let pixel = &mut pixels[col_byte * 8 + pixel_x][row];
-                    if fb_byte.wrapping_shr(7 - pixel_x as u32) & 1 == 1 {
-                        pixel.colored = true;
-                    } else {
-                        pixel.colored = false;
-                    }
-                }
-            }
-        }
-
-        for pixel_row in pixels {
-            for pixel in pixel_row {
-                if pixel.colored {
-                    canvas.set_draw_color(Color::RGB(0, 0xcc, 0x11));
-                    canvas.fill_rect(pixel.rect).unwrap();
-                }
-            }
-        }
+        // TODO: No need to do that if the framebuffer hasn't changed last instruction.
+        display.set_pixels(&state.framebuffer);
 
         // Change KEY_PRESSED key states to KEY_DOWN.
         // TODO: Describe the trick.
@@ -717,7 +653,7 @@ fn main() {
             execute_instruction(instruction, &mut state);
         }
 
-        canvas.present();
+        display.present();
         ::std::thread::sleep(Duration::from_micros(16666));
     }
 }
