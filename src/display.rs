@@ -1,12 +1,12 @@
-use sdl2::rect::Rect;
 use sdl2::pixels::Color;
+use sdl2::rect::Rect;
 use sdl2::render::WindowCanvas;
 use sdl2::VideoSubsystem;
 
 pub struct Display {
     pixels: [[Pixel; 32]; 64],
     video_subsystem: VideoSubsystem,
-    canvas: WindowCanvas
+    canvas: WindowCanvas,
 }
 
 impl Display {
@@ -15,13 +15,14 @@ impl Display {
         let window = match video_subsystem
             .window("CHIP-8 emulator", 640, 320)
             .position_centered()
-            .build() {
-                Ok(window) => window,
-                Err(err) => return Err(err.to_string())
-            };
+            .build()
+        {
+            Ok(window) => window,
+            Err(err) => return Err(err.to_string()),
+        };
         let canvas = match window.into_canvas().build() {
             Ok(canvas) => canvas,
-            Err(err) => return Err(err.to_string())
+            Err(err) => return Err(err.to_string()),
         };
 
         let mut display = Display {
@@ -37,7 +38,7 @@ impl Display {
                 pixel.rect.set_x((i * 10) as i32);
                 pixel.rect.set_y((j * 10) as i32);
             }
-        };
+        }
 
         Ok(display)
     }
