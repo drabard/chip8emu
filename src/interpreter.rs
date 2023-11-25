@@ -51,8 +51,8 @@ pub struct Interpreter {
     registers: [u8; 16],
     stack: [u16; 0xf],
     memory_register: u16,
-    pub delay_timer: u8,
-    pub sound_timer: u8,
+    delay_timer: u8,
+    sound_timer: u8,
     // internal registers (not available for CHIP-8 programs)
     program_counter: u16,
     stack_pointer: usize,
@@ -89,7 +89,7 @@ impl Interpreter {
 
         let mut interpreter = Interpreter {
             framebuffer: [0; 256],
-            memory: memory,
+            memory,
             registers: [0; 16],
             stack: [0; 0xf],
             memory_register: 0,
@@ -213,7 +213,7 @@ impl Interpreter {
                 0x33 => Instruction::LDB(((opcode & 0xf00) >> 8) as Register),
                 0x55 => Instruction::LDIR(((opcode & 0xf00) >> 8) as Register),
                 0x65 => Instruction::LDRI(((opcode & 0xf00) >> 8) as Register),
-                _ => panic!("Invalid opcode: {:?}", opcode),
+                _ => Instruction::INVALID,
             },
             _ => Instruction::INVALID,
         }
