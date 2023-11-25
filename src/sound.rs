@@ -19,9 +19,7 @@ impl Sound {
                 volume: 0.25,
             })?;
 
-        let sound = Sound {
-            audio_device: audio_device,
-        };
+        let sound = Sound { audio_device };
 
         Ok(sound)
     }

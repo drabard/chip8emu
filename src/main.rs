@@ -73,11 +73,8 @@ fn main() {
             interpreter.print_state();
         }
 
-        // TODO: No need to do that if the framebuffer hasn't changed last instruction.
-        display.set_pixels(&interpreter.framebuffer);
-
         if next_instruction {
-            interpreter.execute_next_instruction(&mut sound, &input);
+            interpreter.execute_next_instruction(&mut display, &mut sound, &input).unwrap();
         }
 
         display.present();

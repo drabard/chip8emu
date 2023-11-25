@@ -1,7 +1,8 @@
 use rand::{rngs::ThreadRng, Rng};
 
+use crate::input::{Input, Key, KeyState};
 use crate::sound::Sound;
-use crate::input::{Key, KeyState, Input};
+use crate::display::Display;
 
 #[derive(Debug)]
 enum Instruction {
@@ -46,7 +47,7 @@ enum Instruction {
 
 #[derive(Debug)]
 pub struct Interpreter {
-    pub framebuffer: [u8; 256],
+    framebuffer: [u8; 256],
     memory: [u8; 0xfff],
     registers: [u8; 16],
     stack: [u16; 0xf],
@@ -57,6 +58,13 @@ pub struct Interpreter {
     program_counter: u16,
     stack_pointer: usize,
     random_number_generator: ThreadRng,
+    previous_status: ExecutionStatus
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ExecutionStatus {
+    Ok,
+    FramebufferChanged
 }
 
 type Address = u16;
@@ -98,6 +106,7 @@ impl Interpreter {
             program_counter: 0,
             stack_pointer: 0,
             random_number_generator: rand::thread_rng(),
+            previous_status: ExecutionStatus::Ok
         };
 
         let magic_string = match std::str::from_utf8(&rom_buffer[0..3]) {
@@ -219,8 +228,11 @@ impl Interpreter {
         }
     }
 
-    fn execute_instruction(self: &mut Interpreter, instruction: Instruction, input: &Input) {
+    fn execute_instruction(self: &mut Interpreter, instruction: Instruction, input: &Input) -> ExecutionStatus {
         self.program_counter += 2;
+
+        let mut status = ExecutionStatus::Ok;
+
         match instruction {
             Instruction::INVALID => (),
             Instruction::SYS => (),
@@ -340,6 +352,8 @@ impl Interpreter {
                         self.framebuffer[fb_byte_idx + 1] ^= sprite_bits as u8;
                     }
                 }
+
+                status = ExecutionStatus::FramebufferChanged;
             }
             Instruction::SKP(register) => {
                 if input.get_key_state(Key::from(self.registers[register])) != KeyState::KeyUp {
@@ -354,12 +368,10 @@ impl Interpreter {
             Instruction::LDRDT(register) => {
                 self.registers[register] = self.delay_timer;
             }
-            Instruction::LDRK(register) => {
-                match input.any_key_pressed() {
-                    Some(key) => self.registers[register as usize] = key as u8,
-                    None => self.program_counter -= 2,
-                }
-            }
+            Instruction::LDRK(register) => match input.any_key_pressed() {
+                Some(key) => self.registers[register as usize] = key as u8,
+                None => self.program_counter -= 2,
+            },
             Instruction::LDDTR(register) => {
                 self.delay_timer = self.registers[register];
             }
@@ -397,10 +409,16 @@ impl Interpreter {
                     .copy_from_slice(&self.memory[mem_start..mem_end]);
             }
         }
+
+        status
     }
 
-    pub fn execute_next_instruction(self: &mut Self, sound: &mut Sound, input: &Input) {
-        // update timer
+    pub fn execute_next_instruction(self: &mut Self, display: &mut Display, sound: &mut Sound, input: &Input) -> Result<ExecutionStatus, String> {
+        match self.previous_status {
+            ExecutionStatus::FramebufferChanged => display.set_pixels(&self.framebuffer),
+            _ => ()
+        }
+
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
         }
@@ -422,10 +440,14 @@ impl Interpreter {
                 self.program_counter, opcode, instruction
             );
         }
+
         if let Instruction::INVALID = instruction {
-            return;
+            return Err("Invalid instruction.".to_string());
         }
-        self.execute_instruction(instruction, input);
+
+        self.previous_status = self.execute_instruction(instruction, input);
+
+        Ok(self.previous_status.clone())
     }
 
     pub fn print_state(self: &Self) {
@@ -451,13 +473,5 @@ Delay timer: {}
             }
             print!("\n");
         }
-
-        // Print the framebuffer.
-        // for i in 0..32 {
-        //     for j in 0..8 {
-        //         print!("{:08b}", self.framebuffer[j + i * 8]);
-        //     }
-        //     print!("\n");
-        // }
     }
 }

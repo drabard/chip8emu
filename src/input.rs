@@ -1,6 +1,6 @@
 use sdl2::event::Event;
-use sdl2::EventPump;
 use sdl2::keyboard::Keycode;
+use sdl2::EventPump;
 
 #[derive(Clone, Copy)]
 pub enum Key {
@@ -17,7 +17,7 @@ pub enum Key {
     KeyA = 0xa,
     KeyB = 0xb,
     KeyC = 0xc,
-    KeyD = 0xd, 
+    KeyD = 0xd,
     KeyE = 0xe,
     KeyF = 0xf,
 }
@@ -38,10 +38,10 @@ impl From<u8> for Key {
             0xa => Key::KeyA,
             0xb => Key::KeyB,
             0xc => Key::KeyC,
-            0xd => Key::KeyD, 
+            0xd => Key::KeyD,
             0xe => Key::KeyE,
             0xf => Key::KeyF,
-            _ => panic!("Invalid Key.")
+            _ => panic!("Invalid Key."),
         }
     }
 }
@@ -59,7 +59,7 @@ impl From<u8> for KeyState {
             0b01 => KeyState::KeyUp,
             0b10 => KeyState::KeyPressed,
             0b11 => KeyState::KeyDown,
-            _ => panic!("Invalid KeyState value!")
+            _ => panic!("Invalid KeyState value."),
         }
     }
 }
@@ -102,36 +102,28 @@ impl Input {
                 Event::KeyDown {
                     keycode: Some(keycode),
                     ..
-                } => {
-                    match keycode {
-                        Keycode::P => {
-                            self.step_mode_changed = true
-                        }
-                        Keycode::N => {
-                            self.step_to_next_instruction = true
-                        }
-                        Keycode::L => {
-                            self.print_state = true
-                        }
-                        Keycode::Num1 => self.chip8_keys[0x1] = KeyState::KeyPressed,
-                        Keycode::Num2 => self.chip8_keys[0x2] = KeyState::KeyPressed,
-                        Keycode::Num3 => self.chip8_keys[0x3] = KeyState::KeyPressed,
-                        Keycode::Num4 => self.chip8_keys[0xc] = KeyState::KeyPressed,
-                        Keycode::Q => self.chip8_keys[0x4] = KeyState::KeyPressed,
-                        Keycode::W => self.chip8_keys[0x5] = KeyState::KeyPressed,
-                        Keycode::E => self.chip8_keys[0x6] = KeyState::KeyPressed,
-                        Keycode::R => self.chip8_keys[0xd] = KeyState::KeyPressed,
-                        Keycode::A => self.chip8_keys[0x7] = KeyState::KeyPressed,
-                        Keycode::S => self.chip8_keys[0x8] = KeyState::KeyPressed,
-                        Keycode::D => self.chip8_keys[0x9] = KeyState::KeyPressed,
-                        Keycode::F => self.chip8_keys[0xe] = KeyState::KeyPressed,
-                        Keycode::Z => self.chip8_keys[0xa] = KeyState::KeyPressed,
-                        Keycode::X => self.chip8_keys[0x0] = KeyState::KeyPressed,
-                        Keycode::C => self.chip8_keys[0xb] = KeyState::KeyPressed,
-                        Keycode::V => self.chip8_keys[0xf] = KeyState::KeyPressed,
-                        _ => (),
-                    }
-                }
+                } => match keycode {
+                    Keycode::P => self.step_mode_changed = true,
+                    Keycode::N => self.step_to_next_instruction = true,
+                    Keycode::L => self.print_state = true,
+                    Keycode::Num1 => self.chip8_keys[0x1] = KeyState::KeyPressed,
+                    Keycode::Num2 => self.chip8_keys[0x2] = KeyState::KeyPressed,
+                    Keycode::Num3 => self.chip8_keys[0x3] = KeyState::KeyPressed,
+                    Keycode::Num4 => self.chip8_keys[0xc] = KeyState::KeyPressed,
+                    Keycode::Q => self.chip8_keys[0x4] = KeyState::KeyPressed,
+                    Keycode::W => self.chip8_keys[0x5] = KeyState::KeyPressed,
+                    Keycode::E => self.chip8_keys[0x6] = KeyState::KeyPressed,
+                    Keycode::R => self.chip8_keys[0xd] = KeyState::KeyPressed,
+                    Keycode::A => self.chip8_keys[0x7] = KeyState::KeyPressed,
+                    Keycode::S => self.chip8_keys[0x8] = KeyState::KeyPressed,
+                    Keycode::D => self.chip8_keys[0x9] = KeyState::KeyPressed,
+                    Keycode::F => self.chip8_keys[0xe] = KeyState::KeyPressed,
+                    Keycode::Z => self.chip8_keys[0xa] = KeyState::KeyPressed,
+                    Keycode::X => self.chip8_keys[0x0] = KeyState::KeyPressed,
+                    Keycode::C => self.chip8_keys[0xb] = KeyState::KeyPressed,
+                    Keycode::V => self.chip8_keys[0xf] = KeyState::KeyPressed,
+                    _ => (),
+                },
                 Event::KeyUp {
                     keycode: Some(keycode),
                     ..
@@ -160,9 +152,13 @@ impl Input {
     }
 
     pub fn any_key_pressed(self: &Self) -> Option<Key> {
-        match self.chip8_keys.iter().position(|&k| k == KeyState::KeyPressed) {
+        match self
+            .chip8_keys
+            .iter()
+            .position(|&k| k == KeyState::KeyPressed)
+        {
             Some(idx) => Some(Key::from(idx as u8)),
-            None => None
+            None => None,
         }
     }
 
@@ -170,5 +166,3 @@ impl Input {
         return self.chip8_keys[key as usize];
     }
 }
-
-
